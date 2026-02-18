@@ -45,6 +45,11 @@ app.post('/chat', async (req, res) => {
   console.log("🔥 /chat chiamata");
   console.log("Body ricevuto:", req.body);
 
+  if (!req.body.message) {
+    console.log("Messaggio vuoto");
+    return res.status(400).json({ error: "Messaggio vuoto" });
+  }
+
   try {
     const result = await ai.models.generateContent({
       model: "gemini-1.5-flash",
@@ -53,9 +58,12 @@ app.post('/chat', async (req, res) => {
 
     console.log("Risposta completa Gemini:", JSON.stringify(result, null, 2));
 
+    const text =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text
+      || "Nessuna risposta generata.";
+
     res.json({
-      reply: result.response?.candidates?.[0]?.content?.parts?.[0]?.text
-        || "Nessuna risposta"
+      reply: text
     });
 
   } catch (error) {
