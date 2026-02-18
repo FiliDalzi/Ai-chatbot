@@ -2,38 +2,38 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import path from 'path';
+import path, { join } from 'path';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
-
-const app = express();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 if (!process.env.GOOGLE_API_KEY) {
   console.error("❌ GOOGLE_API_KEY non trovata");
   process.exit(1);
 }
 
+const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY // metti qui la tua chiave Google GenAI
+  apiKey: process.env.GOOGLE_API_KEY
 });
 
 // ====== CREDITI ======
-const DAILY_LIMIT = 20; // massimo richieste gratuite al giorno
-let usedCredits = 0;    // quante ne hai già usate
-let lastReset = new Date().toDateString(); // tiene traccia del giorno
+const DAILY_LIMIT = 20;
+let usedCredits = 0;
+let lastReset = new Date().toDateString();
 
 function checkReset() {
   const today = new Date().toDateString();
   if (today !== lastReset) {
-    usedCredits = 0;       // reset dei crediti
+    usedCredits = 0;
     lastReset = today;
   }
 }
@@ -51,8 +51,8 @@ app.post('/chat', async (req, res) => {
   const { message } = req.body;
 
   if (!message || message.trim() === "") {
-  return res.status(400).json({ error: "Messaggio vuoto" });
-}
+    return res.status(400).json({ error: "Messaggio vuoto" });
+  }
 
   try {
     const response = await ai.models.generateContent({
@@ -70,6 +70,11 @@ app.post('/chat', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// 👇 QUESTO APRE L’INDEX.HTML
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
