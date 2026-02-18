@@ -16,10 +16,12 @@ const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicPath = join(__dirname, 'public');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+app.use(express.static(publicPath));
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY
@@ -74,7 +76,7 @@ app.post('/chat', async (req, res) => {
 
 // 👇 QUESTO APRE L’INDEX.HTML
 app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+  res.sendFile(join(publicPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
