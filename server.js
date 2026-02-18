@@ -42,35 +42,24 @@ function checkReset() {
 }
 
 app.post('/chat', async (req, res) => {
-  checkReset();
-
-  if (usedCredits >= DAILY_LIMIT) {
-    return res.status(403).json({
-      error: "Limite giornaliero raggiunto",
-      creditsLeft: 0
-    });
-  }
-
-  const { message } = req.body;
-
-  if (!message || message.trim() === "") {
-    return res.status(400).json({ error: "Messaggio vuoto" });
-  }
+  console.log("🔥 /chat chiamata");
+  console.log("Body ricevuto:", req.body);
 
   try {
-    const response = await ai.models.generateContent({
+    const result = await ai.models.generateContent({
       model: "gemini-1.5-flash",
-      contents: message
+      contents: req.body.message
     });
 
-    usedCredits++;
+    console.log("Risposta completa Gemini:", JSON.stringify(result, null, 2));
 
     res.json({
-      reply: response.text,
-      creditsLeft: DAILY_LIMIT - usedCredits
+      reply: result.response?.candidates?.[0]?.content?.parts?.[0]?.text
+        || "Nessuna risposta"
     });
 
   } catch (error) {
+    console.error("❌ ERRORE COMPLETO:", error);
     res.status(500).json({ error: error.message });
   }
 });
