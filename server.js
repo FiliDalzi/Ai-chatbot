@@ -1,95 +1,43 @@
-import express from 'express';
-import cors from 'cors';
-import { GoogleGenAI } from '@google/genai';
-import dotenv from 'dotenv';
-import path, { join } from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-if (!process.env.GOOGLE_API_KEY) {
-  console.error("❌ GOOGLE_API_KEY non trovata");
-  process.exit(1);
-}
-
 const app = express();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 📁 Cartella pubblica
-const publicPath = join(__dirname, 'public');
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(publicPath)); // Serve index.html, video, css, ecc.
+app.use(express.static("public")); // serve index.html
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY
-});
-
-async function checkModels() {
+app.post("/chat", async (req, res) => {
   try {
-    const models = await ai.models.listModels();
-    console.log("Modelli disponibili:", models);
-  } catch (err) {
-    console.error("Errore listModels:", err);
-  }
-}
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/gpt2",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HF_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: req.body.message,
+        }),
+      }
+    );
 
-checkModels();
-
-// ====== CREDITI ======
-const DAILY_LIMIT = 20;
-let usedCredits = 0;
-let lastReset = new Date().toDateString();
-
-function checkReset() {
-  const today = new Date().toDateString();
-  if (today !== lastReset) {
-    usedCredits = 0;
-    lastReset = today;
-  }
-}
-
-app.post('/chat', async (req, res) => {
-  console.log("🔥 /chat chiamata");
-  console.log("Body ricevuto:", req.body);
-
-  if (!req.body.message) {
-    console.log("Messaggio vuoto");
-    return res.status(400).json({ error: "Messaggio vuoto" });
-  }
-
-  try {
-    const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: req.body.message
-    });
-
-    console.log("Risposta completa Gemini:", JSON.stringify(result, null, 2));
-
-    const text =
-      result.response?.candidates?.[0]?.content?.parts?.[0]?.text
-      || "Nessuna risposta generata.";
+    const data = await response.json();
 
     res.json({
-      reply: text
+      reply: data[0]?.generated_text || "Nessuna risposta",
     });
-
-  } catch (error) {
-    console.error("❌ ERRORE COMPLETO:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
-});
-
-// 👇 Serve l'index.html principale
-app.get('/', (req, res) => {
-  res.sendFile(join(publicPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => 
-  console.log(`Server Google AI attivo sulla porta ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log("Server attivo sulla porta", PORT);
+});
