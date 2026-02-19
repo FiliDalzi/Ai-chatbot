@@ -28,6 +28,17 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY
 });
 
+async function checkModels() {
+  try {
+    const models = await ai.models.listModels();
+    console.log("Modelli disponibili:", models);
+  } catch (err) {
+    console.error("Errore listModels:", err);
+  }
+}
+
+checkModels();
+
 // ====== CREDITI ======
 const DAILY_LIMIT = 20;
 let usedCredits = 0;
